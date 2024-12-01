@@ -23,7 +23,7 @@ function UserManagement({ token }) {
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers, token]);
+  }, [fetchUsers(), token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
