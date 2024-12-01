@@ -29,7 +29,7 @@ function initializeDatabase() {
       )
     `);
 
-    // Create transactions table
+    // Create transactions table with transfer_id
     db.run(`
       CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +38,7 @@ function initializeDatabase() {
         amount REAL NOT NULL,
         category TEXT NOT NULL,
         date TEXT NOT NULL,
+        transfer_id TEXT,
         FOREIGN KEY (scout_id) REFERENCES scouts(id)
       )
     `);
@@ -193,7 +194,7 @@ app.delete('/api/transactions/:id', (req, res) => {
     try {
       // First get the transaction details
       db.get(
-        'SELECT amount, scout_id, category, date, description FROM transactions WHERE id = ?',
+        'SELECT amount, scout_id, category, transfer_id FROM transactions WHERE id = ?',
         [transactionId],
         (err, transaction) => {
           if (err) {
@@ -206,21 +207,11 @@ app.delete('/api/transactions/:id', (req, res) => {
           console.log('Original transaction:', transaction);
 
           // If this is a transfer, find and delete the corresponding transaction
-          if (transaction.category === 'Transfer') {
-            const isOutgoing = transaction.amount < 0;
-            const linkedAmount = isOutgoing ? -transaction.amount : -transaction.amount;
-            
-            // Modified query to find the linked transaction with more specific conditions
+          if (transaction.category === 'Transfer' && transaction.transfer_id) {
+            // Find the linked transaction using transfer_id
             db.get(
-              `SELECT id, scout_id, amount, date 
-               FROM transactions 
-               WHERE category = 'Transfer' 
-               AND amount = ? 
-               AND date = ?
-               AND description = ?
-               AND id != ?
-               AND scout_id != ?`,
-              [linkedAmount, transaction.date, transaction.description, transactionId, transaction.scout_id],
+              'SELECT id, scout_id, amount FROM transactions WHERE transfer_id = ? AND id != ?',
+              [transaction.transfer_id, transactionId],
               (err, linkedTransaction) => {
                 if (err) {
                   console.error('Error finding linked transaction:', err);
@@ -234,8 +225,8 @@ app.delete('/api/transactions/:id', (req, res) => {
                 if (linkedTransaction) {
                   // Delete both transactions and update both balances
                   db.run(
-                    'DELETE FROM transactions WHERE id IN (?, ?)',
-                    [transactionId, linkedTransaction.id],
+                    'DELETE FROM transactions WHERE transfer_id = ?',
+                    [transaction.transfer_id],
                     (err) => {
                       if (err) {
                         console.error('Error deleting transactions:', err);
@@ -243,8 +234,6 @@ app.delete('/api/transactions/:id', (req, res) => {
                         res.status(500).json({ error: err.message });
                         return;
                       }
-
-                      console.log('Deleted transactions:', transactionId, linkedTransaction.id);
 
                       // Update balances for both accounts
                       db.run(
@@ -260,7 +249,7 @@ app.delete('/api/transactions/:id', (req, res) => {
 
                           db.run(
                             'UPDATE scouts SET balance = balance - ? WHERE id = ?',
-                            [linkedAmount, linkedTransaction.scout_id],
+                            [linkedTransaction.amount, linkedTransaction.scout_id],
                             (err) => {
                               if (err) {
                                 console.error('Error updating second balance:', err);
@@ -286,13 +275,7 @@ app.delete('/api/transactions/:id', (req, res) => {
                     }
                   );
                 } else {
-                  console.error('No linked transaction found for transfer:', {
-                    amount: linkedAmount,
-                    date: transaction.date,
-                    description: transaction.description,
-                    transactionId,
-                    scoutId: transaction.scout_id
-                  });
+                  console.error('No linked transaction found for transfer ID:', transaction.transfer_id);
                   db.run('ROLLBACK');
                   res.status(400).json({ error: 'Linked transfer transaction not found' });
                 }
@@ -346,6 +329,7 @@ app.delete('/api/transactions/:id', (req, res) => {
 
 app.post('/api/transfers', (req, res) => {
   const { fromScoutId, toScoutId, amount, description } = req.body;
+  const transferId = `transfer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Get Unit Account ID
   db.get('SELECT id FROM scouts WHERE is_unit_account = 1', [], (err, unitAccount) => {
@@ -363,8 +347,8 @@ app.post('/api/transfers', (req, res) => {
       try {
         // Create withdrawal transaction for source account
         db.run(
-          'INSERT INTO transactions (scout_id, description, amount, category, date) VALUES (?, ?, ?, ?, ?)',
-          [fromId, description, -amount, 'Transfer', new Date().toISOString()]
+          'INSERT INTO transactions (scout_id, description, amount, category, date, transfer_id) VALUES (?, ?, ?, ?, ?, ?)',
+          [fromId, description, -amount, 'Transfer', new Date().toISOString(), transferId]
         );
         
         db.run(
@@ -374,8 +358,8 @@ app.post('/api/transfers', (req, res) => {
 
         // Create deposit transaction for destination account
         db.run(
-          'INSERT INTO transactions (scout_id, description, amount, category, date) VALUES (?, ?, ?, ?, ?)',
-          [toId, description, amount, 'Transfer', new Date().toISOString()]
+          'INSERT INTO transactions (scout_id, description, amount, category, date, transfer_id) VALUES (?, ?, ?, ?, ?, ?)',
+          [toId, description, amount, 'Transfer', new Date().toISOString(), transferId]
         );
         
         db.run(
@@ -398,6 +382,33 @@ app.post('/api/transfers', (req, res) => {
       }
     });
   });
+});
+
+// Make sure this endpoint is defined before app.listen()
+app.put('/api/scouts/:id', (req, res) => {
+  const { name } = req.body;
+  const scoutId = parseInt(req.params.id, 10); // Convert ID to number
+
+  console.log('Updating scout:', { scoutId, name });
+
+  db.run(
+    'UPDATE scouts SET name = ? WHERE id = ? AND is_unit_account = 0',
+    [name, scoutId],
+    function(err) {
+      if (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        console.log('No scout updated:', { scoutId, changes: this.changes });
+        res.status(404).json({ error: 'Scout not found or cannot edit Unit Account' });
+        return;
+      }
+      console.log('Scout updated successfully:', { scoutId, name });
+      res.json({ id: scoutId, name });
+    }
+  );
 });
 
 const PORT = process.env.PORT || 3000;

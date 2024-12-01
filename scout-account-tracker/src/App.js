@@ -162,6 +162,48 @@ function App() {
     }
   };
 
+  const editScout = async (scoutId, name) => {
+    try {
+      console.log('Attempting to update scout:', { scoutId, name });
+      
+      // Convert scoutId to string and ensure it's a valid format
+      const url = `${API_URL}/scouts/${String(scoutId)}`;
+      console.log('Request URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('Failed to update scout:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url: response.url
+        });
+        throw new Error(errorData?.error || 'Failed to update scout name');
+      }
+
+      const updatedScout = await response.json();
+      console.log('Scout updated successfully:', updatedScout);
+
+      setScouts(prevScouts =>
+        prevScouts.map(scout =>
+          scout.id === scoutId
+            ? { ...scout, name: updatedScout.name }
+            : scout
+        )
+      );
+      setError(null);
+    } catch (err) {
+      console.error('Error updating scout:', err);
+      setError(err.message || 'Failed to update scout name. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <Container className="mt-4 text-center">
@@ -187,6 +229,7 @@ function App() {
             onAddScout={addScout}
             onSelectScout={setSelectedScout}
             selectedScout={selectedScout}
+            onEditScout={editScout}
           />
         </Col>
         <Col md={8}>
