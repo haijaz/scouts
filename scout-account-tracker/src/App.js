@@ -23,6 +23,7 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchScouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch transactions when a scout is selected
@@ -31,6 +32,7 @@ function App() {
     if (selectedScout) {
       fetchTransactions(selectedScout.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScout]);
 
   const fetchScouts = async () => {
