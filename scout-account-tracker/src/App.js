@@ -9,7 +9,7 @@ import ExportButton from './components/ExportButton';
 import LoginPage from './components/LoginPage';
 import UserManagement from './components/UserManagement';
 
-const API_URL = 'https://your-worker-url.workers.dev/api';
+const API_URL = 'https://scouts.aijazgroup.com/api';
 
 function App() {
   const [scouts, setScouts] = useState([]);
