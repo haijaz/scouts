@@ -22,14 +22,14 @@ function App() {
   // Fetch scouts on component mount
   useEffect(() => {
     fetchScouts();
-  }, []);
+  }, [fetchScouts]);
 
   // Fetch transactions when a scout is selected
   useEffect(() => {
     if (selectedScout) {
       fetchTransactions(selectedScout.id);
     }
-  }, [selectedScout]);
+  }, [fetchTransactions, selectedScout]);
 
   const fetchScouts = async () => {
     try {
