@@ -21,9 +21,10 @@ function UserManagement({ token }) {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers(), token]);
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

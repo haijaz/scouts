@@ -20,16 +20,18 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   // Fetch scouts on component mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchScouts();
-  }, [fetchScouts]);
+  }, []);
 
   // Fetch transactions when a scout is selected
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedScout) {
       fetchTransactions(selectedScout.id);
     }
-  }, [fetchTransactions, selectedScout]);
+  }, [selectedScout]);
 
   const fetchScouts = async () => {
     try {
