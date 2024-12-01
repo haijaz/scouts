@@ -6,12 +6,6 @@ function AccountDetails({ scout, onEditTransaction, onDeleteTransaction }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  if (!scout || typeof scout !== 'object') {
-    return <div>No scout selected</div>;
-  }
-
-  const transactions = Array.isArray(scout.transactions) ? scout.transactions : [];
-
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
     setShowEditModal(true);
@@ -26,7 +20,7 @@ function AccountDetails({ scout, onEditTransaction, onDeleteTransaction }) {
   return (
     <div>
       <h3>{scout.name}'s Account Details</h3>
-      <h4>Current Balance: ${(scout.balance || 0).toFixed(2)}</h4>
+      <h4>Current Balance: ${scout.balance.toFixed(2)}</h4>
       <h5>Transaction History</h5>
       <Table striped bordered>
         <thead>
@@ -40,8 +34,8 @@ function AccountDetails({ scout, onEditTransaction, onDeleteTransaction }) {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((transaction, index) => {
-            const runningBalance = transactions
+          {scout.transactions.map((transaction, index) => {
+            const runningBalance = scout.transactions
               .slice(0, index + 1)
               .reduce((sum, t) => sum + t.amount, 0);
             
