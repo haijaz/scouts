@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from 'react-bootstrap';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx/xlsx';
 
 function ExportButton({ scouts }) {
   const exportToExcel = () => {
