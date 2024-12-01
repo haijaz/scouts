@@ -1,0 +1,8 @@
+name = "scout-account-tracker-api"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scout_db"
+database_id = "your-database-id" # You'll get this after creating the D1 database 

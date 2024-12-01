@@ -9,7 +9,7 @@ import ExportButton from './components/ExportButton';
 import LoginPage from './components/LoginPage';
 import UserManagement from './components/UserManagement';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://your-worker-url.workers.dev/api';
 
 function App() {
   const [scouts, setScouts] = useState([]);
