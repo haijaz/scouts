@@ -5,4 +5,4 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "scout_db"
-database_id = "your-database-id" # You'll get this after creating the D1 database 
+database_id = "a7934ed9-5d0a-4550-b09a-d5f8d3d91874" # You'll get this after creating the D1 database 
