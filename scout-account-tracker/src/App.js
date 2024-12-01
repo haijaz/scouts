@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Spinner, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import ScoutList from './components/ScoutList';
 import TransactionForm from './components/TransactionForm';
 import AccountDetails from './components/AccountDetails';
 import TransferForm from './components/TransferForm';
 import ExportButton from './components/ExportButton';
+import LoginPage from './components/LoginPage';
+import UserManagement from './components/UserManagement';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -14,6 +16,8 @@ function App() {
   const [selectedScout, setSelectedScout] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
+  const [token, setToken] = useState(localStorage.getItem('token'));
 
   // Fetch scouts on component mount
   useEffect(() => {
@@ -29,7 +33,7 @@ function App() {
 
   const fetchScouts = async () => {
     try {
-      const response = await fetch(`${API_URL}/scouts`);
+      const response = await fetchWithAuth(`${API_URL}/scouts`);
       if (!response.ok) throw new Error('Failed to fetch scouts');
       const data = await response.json();
       setScouts(data);
@@ -43,7 +47,7 @@ function App() {
 
   const fetchTransactions = async (scoutId) => {
     try {
-      const response = await fetch(`${API_URL}/scouts/${scoutId}/transactions`);
+      const response = await fetchWithAuth(`${API_URL}/scouts/${scoutId}/transactions`);
       if (!response.ok) throw new Error('Failed to fetch transactions');
       const transactions = await response.json();
       
@@ -65,7 +69,7 @@ function App() {
       console.log('Sending request to:', `${API_URL}/scouts`);
       console.log('Request payload:', { name });
       
-      const response = await fetch(`${API_URL}/scouts`, {
+      const response = await fetchWithAuth(`${API_URL}/scouts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
@@ -93,7 +97,7 @@ function App() {
 
   const addTransaction = async (scoutId, transaction) => {
     try {
-      const response = await fetch(`${API_URL}/scouts/${scoutId}/transactions`, {
+      const response = await fetchWithAuth(`${API_URL}/scouts/${scoutId}/transactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transaction)
@@ -109,7 +113,7 @@ function App() {
 
   const editTransaction = async (scoutId, transactionId, updatedTransaction) => {
     try {
-      const response = await fetch(`${API_URL}/transactions/${transactionId}`, {
+      const response = await fetchWithAuth(`${API_URL}/transactions/${transactionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedTransaction)
@@ -129,7 +133,7 @@ function App() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/transactions/${transactionId}`, {
+      const response = await fetchWithAuth(`${API_URL}/transactions/${transactionId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete transaction');
@@ -143,7 +147,7 @@ function App() {
 
   const handleTransfer = async (transferData) => {
     try {
-      const response = await fetch(`${API_URL}/transfers`, {
+      const response = await fetchWithAuth(`${API_URL}/transfers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transferData)
@@ -170,7 +174,7 @@ function App() {
       const url = `${API_URL}/scouts/${String(scoutId)}`;
       console.log('Request URL:', url);
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
@@ -204,6 +208,33 @@ function App() {
     }
   };
 
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setToken(localStorage.getItem('token'));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setToken(null);
+  };
+
+  const fetchWithAuth = (url, options = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  };
+
+  if (!user || !token) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   if (loading) {
     return (
       <Container className="mt-4 text-center">
@@ -216,7 +247,17 @@ function App() {
 
   return (
     <Container className="mt-4">
-      <h1>Scout Troop Account Tracker</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>Scout Troop Account Tracker</h1>
+        <div>
+          <span className="me-3">
+            Logged in as: {user.username} ({user.role})
+          </span>
+          <Button variant="outline-danger" onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
+      </div>
       {error && (
         <Alert variant="danger" dismissible onClose={() => setError(null)}>
           {error}
@@ -255,6 +296,13 @@ function App() {
           )}
         </Col>
       </Row>
+      {user.role === 'admin' && (
+        <Row className="mt-4">
+          <Col>
+            <UserManagement token={token} />
+          </Col>
+        </Row>
+      )}
     </Container>
   );
 }
