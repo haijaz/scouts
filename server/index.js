@@ -165,5 +165,5 @@ function createJWT(user) {
 }
 
 function verifyJWT(token) {
-  // Implement JWT verification
+  // Implement JWT veriication
 } 
